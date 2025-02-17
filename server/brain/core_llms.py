@@ -20,4 +20,4 @@ gemini_2 = ChatGoogleGenerativeAI(
     max_retries=2,
 )
 
-llm = gemini_2
+llm = llama_3

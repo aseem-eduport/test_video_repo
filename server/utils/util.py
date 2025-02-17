@@ -1,9 +1,10 @@
 # from vector_db import client, vector_store, embeddings
-from chains import (validation_chain,
+from server.brain.chains import (validation_chain,
                     main_chat_chain,
-                    question_validition_chain,
+                    question_validation_chain,
                     eduport_context,)
-from vector_db import cloude_embd_col
+from server.brain.vector_db import cloud_embed_col
+from server.models.user import UserMessageHistory
 # from langchain.retrievers import BM25Retriever
 
 #print(vector_store.similarity_search("gravitaional field", filter={"timestamp_end": {"$gte": 90}}))
@@ -125,14 +126,18 @@ def search_for_timestamp(full_timestamp_data):
 #   print(generated_content, link, context, "--------generated content--------")
 #   return generated_content, link
   
-def generate_response(question):
+def generate_response(question, user_history: UserMessageHistory=None):
   generated_content, link, context = None, None, None
-  validition_response = question_validition_chain.invoke({"question": question})
-  if validition_response !=  'YES':
-    generated_content = main_chat_chain.invoke({'context': eduport_context, 'question': question})
+  messages = sorted(user_history.messages, key=lambda message: message.created_at)[:10]
+  user_history = ""
+  for indx, message in enumerate(messages):
+      user_history += f"\nQuestion{indx}: {message.question}\nAnswer{indx}: {message.answer}"
+  validation_response = question_validation_chain.invoke({"question": question})
+  if validation_response !=  'YES':
+    generated_content = main_chat_chain.invoke({'context': eduport_context, 'question': question, 'history': user_history})
     return generated_content, None
-  context = cloude_embd_col.query(query_texts=question, n_results=1)
-  processed_data = search_for_timestamp(context)
+  context = cloud_embed_col.query(query_texts=question, n_results=1)
+  processed_data = search_for_timestamp(context) if context else None
   if processed_data:
     context = generate_vide_data(processed_data[0])
     link = generate_youtube_link(processed_data[0])
@@ -140,5 +145,5 @@ def generate_response(question):
     context = "Can't find the video for the question"
     link = None
   # context, link = generate_context_response(processed_data, question)
-  generated_content = main_chat_chain.invoke({"context": context, "question": question})
+  generated_content = main_chat_chain.invoke({"context": context, "question": question, 'history': user_history})
   return generated_content, link

@@ -1,8 +1,8 @@
 import streamlit as st
 
-from core_llms import llm
-from util import generate_response
-from trasncription import generate_transcription_data
+from server.brain.core_llms import llm
+from server.utils.util import generate_response
+from server.brain.transcription import generate_transcription_data
 
 st.title("PHY Video Help Bot 📹")
 st.text("I'm a helpful bot which helps you to find videos in the system.")
