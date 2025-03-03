@@ -3,7 +3,7 @@ from langchain_groq.chat_models import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 os.environ["GROQ_API_KEY"] = "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"
-os.environ["GOOGLE_API_KEY"] = "AIzaSyBLOv_Q-Ejfrs7b6g3Eg5h3Lr8J55_BsGA"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyCkNqf6Bpmwi_fax72ukDXiJIZ-dI2kJPA"
 llama_3 = ChatGroq(
     model="llama-3.3-70b-versatile",
     temperature=0,

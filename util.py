@@ -2,7 +2,8 @@
 from chains import (main_chat_chain,
                     question_validition_chain,
                     eduport_context,
-                    select_context_chain)
+                    select_context_chain,
+                    hint_mode_chain)
 from vector_db import cloude_embd_col
 # from langchain.retrievers import BM25Retriever
 
@@ -75,8 +76,49 @@ def search_for_timestamp(full_timestamp_data):
         matched_data.append(processed_data)
     return matched_data
 
-def generate_response(question):
+def hint_mode_conversation(question, context, user_input=None):
+    """
+    A function to simulate the conversation flow in hint mode.
+    It will provide ongoing hints and nudges until the user reaches the answer.
+    """
+    # Keep a history of user responses and AI hints (to make the conversation dynamic)
+    conversation_history = []
+
+    # Check the initial context and question to start the hint mode conversation
+    prompt = f"Question: {question}\nContext: {context}\n\nStart asking questions or providing hints based on the context. \n" \
+             f"The hints should guide the user towards the correct answer without directly giving it."
+
+    # Append the current prompt to the conversation history
+    conversation_history.append({"role": "system", "content": prompt})
+
+    # Simulate conversation with the user
+    while True:
+        # If the user provided an input, use it to create new hints/questions
+        if user_input:
+            conversation_history.append({"role": "user", "content": user_input})
+
+        # Get the hint or question from the AI (using the hint mode chain)
+        hint_response = hint_mode_chain.invoke({
+            "context": context,
+            "question": question,
+            "conversation_history": conversation_history
+        })
+
+        # Append the AI's response to the conversation history
+        conversation_history.append({"role": "assistant", "content": hint_response})
+
+        # Check if the user has converged on the correct answer
+        if "correct answer" in hint_response.lower():  # Assuming you detect when the correct answer is given
+            break
+        
+        # Update user input based on AI's hint
+        user_input = hint_response
+
+    return hint_response
+
+def generate_response(question, use_hint_mode=False):
     generated_content, link = None, None
+
     # Use Llama for question validation.
     validition_response = question_validition_chain.invoke({"question": question})
     if validition_response != 'YES':
@@ -94,6 +136,11 @@ def generate_response(question):
         context = "Can't find the video for the question"
         link = None
 
-    # Use Llama to generate the final answer.
-    generated_content = main_chat_chain.invoke({"context": context, "question": question})
+    # If hint mode is enabled, use the hint mode conversation flow
+    if use_hint_mode:
+        generated_content = hint_mode_conversation(question, context)
+    else:
+        # Use Llama to generate the final answer
+        generated_content = main_chat_chain.invoke({"context": context, "question": question})
+    
     return generated_content, link
